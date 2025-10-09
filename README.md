@@ -33,13 +33,19 @@ A Model Context Protocol (MCP) server for integrating with Paperless-ngx documen
 ### Install from npm
 
 ```bash
-npm install -g @mweinheimer/paperless-mcp-server
+npm install -g paperless-mcp-server
 ```
+
+> **Migration Note**: The package was previously published as `@mweinheimer/paperless-mcp-server` but has been moved to the unscoped `paperless-mcp-server`. If you have the old version installed, please uninstall it first:
+> ```bash
+> npm uninstall -g @mweinheimer/paperless-mcp-server
+> npm install -g paperless-mcp-server
+> ```
 
 ### Install with npx (no global installation)
 
 ```bash
-npx @mweinheimer/paperless-mcp-server
+npx paperless-mcp-server
 ```
 
 ## Configuration
@@ -82,7 +88,7 @@ Add the following to your Claude Desktop configuration file (`claude_desktop_con
   "mcpServers": {
     "paperless": {
       "command": "npx",
-      "args": ["-y", "@mweinheimer/paperless-mcp-server"],
+      "args": ["-y", "paperless-mcp-server"],
       "env": {
         "PAPERLESS_URL": "http://your-paperless-instance:8000",
         "PAPERLESS_TOKEN": "your_api_token_here"
@@ -143,7 +149,7 @@ PAPERLESS_URL=http://your-paperless-instance:8000 PAPERLESS_TOKEN=your_token pap
 
 #### Using npx:
 ```bash
-PAPERLESS_URL=http://your-paperless-instance:8000 PAPERLESS_TOKEN=your_token npx @mweinheimer/paperless-mcp-server
+PAPERLESS_URL=http://your-paperless-instance:8000 PAPERLESS_TOKEN=your_token npx paperless-mcp-server
 ```
 
 ## API Coverage
@@ -203,7 +209,7 @@ npm run dev
 npx @modelcontextprotocol/inspector paperless-mcp
 
 # With npx
-npx @modelcontextprotocol/inspector npx @mweinheimer/paperless-mcp-server
+npx @modelcontextprotocol/inspector npx paperless-mcp-server
 ```
 
 ## Security Considerations
@@ -249,7 +255,7 @@ This package is configured for easy publishing to npm. To publish a new version:
 
 3. **Verify publication**:
    ```bash
-   npm info @mweinheimer/paperless-mcp-server
+   npm info paperless-mcp-server
    ```
 
 The package includes:
