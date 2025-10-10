@@ -388,7 +388,6 @@ async function main() {
   if (MCP_TRANSPORT === "http") {
     // HTTP transport with SSE
     const http = await import("http");
-    const url = await import("url");
     
     const transports = new Map<string, SSEServerTransport>();
     
@@ -399,7 +398,8 @@ async function main() {
         return;
       }
       
-      const parsedUrl = url.parse(req.url, true);
+      // Use WHATWG URL API instead of deprecated url.parse()
+      const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
       
       // CORS headers
       res.setHeader("Access-Control-Allow-Origin", "*");
@@ -444,7 +444,7 @@ async function main() {
           req.on("end", async () => {
             try {
               const parsedBody = JSON.parse(body);
-              const sessionId = parsedUrl.query.sessionId as string;
+              const sessionId = parsedUrl.searchParams.get('sessionId') || '';
               const transport = transports.get(sessionId);
               
               if (transport) {
