@@ -68,10 +68,20 @@ get_tunnel_url() {
         cut -d'"' -f4
 }
 
+# Check if ngrok config exists
+check_ngrok_config() {
+    local config_file="$HOME/.ngrok2/ngrok.yml"
+    if [ -f "$config_file" ]; then
+        return 0
+    fi
+    return 1
+}
+
 # Start ngrok tunnel
 start_tunnel() {
     local port=${1:-3000}
     local region=${2:-us}
+    local tunnel_name=${3:-paperless-mcp}
     
     log_header "Starting Ngrok Tunnel"
     
@@ -93,11 +103,24 @@ start_tunnel() {
         fi
     fi
     
-    log_info "Starting ngrok tunnel to http://localhost:$port (region: $region)..."
-    
-    # Start ngrok in background
-    ngrok http $port --region=$region --log=ngrok.log --log-format=json > /dev/null 2>&1 &
-    local pid=$!
+    # Check if ngrok.yml exists and use named tunnel
+    if check_ngrok_config; then
+        log_info "Using ngrok config from ~/.ngrok2/ngrok.yml"
+        log_info "Starting tunnel '$tunnel_name'..."
+        
+        # Start ngrok with named tunnel from config
+        ngrok start $tunnel_name > /dev/null 2>&1 &
+        local pid=$!
+    else
+        log_warning "No ngrok.yml found, using command-line configuration"
+        log_info "For better configuration management, create ~/.ngrok2/ngrok.yml"
+        log_info "Example: cp ngrok.yml.example ~/.ngrok2/ngrok.yml"
+        log_info "Starting ngrok tunnel to http://localhost:$port (region: $region)..."
+        
+        # Start ngrok with command-line args
+        ngrok http $port --region=$region --log=ngrok.log --log-format=json > /dev/null 2>&1 &
+        local pid=$!
+    fi
     
     log_success "Ngrok started (PID: $pid)"
     
@@ -190,13 +213,58 @@ show_logs() {
     tail -50 ngrok.log | jq -r '"\(.t) [\(.lvl)] \(.msg)"' 2>/dev/null || tail -50 ngrok.log
 }
 
-# Setup ngrok auth token
+# Setup ngrok configuration
+setup_config() {
+    log_header "Setup Ngrok Configuration"
+    
+    check_ngrok || return 1
+    
+    local config_dir="$HOME/.ngrok2"
+    local config_file="$config_dir/ngrok.yml"
+    
+    # Create config directory if needed
+    if [ ! -d "$config_dir" ]; then
+        log_info "Creating ngrok config directory: $config_dir"
+        mkdir -p "$config_dir"
+    fi
+    
+    # Check if config already exists
+    if [ -f "$config_file" ]; then
+        log_warning "Config file already exists: $config_file"
+        read -p "Overwrite? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log_info "Keeping existing config"
+            return 0
+        fi
+    fi
+    
+    # Copy example config
+    if [ -f "ngrok.yml.example" ]; then
+        log_info "Copying ngrok.yml.example to $config_file"
+        cp ngrok.yml.example "$config_file"
+        log_success "Configuration file created!"
+        echo ""
+        log_warning "⚠️  IMPORTANT: Edit $config_file and add your auth token!"
+        log_info "Get your token from: https://dashboard.ngrok.com/get-started/your-authtoken"
+        log_info "Then edit: authtoken: YOUR_TOKEN_HERE"
+        echo ""
+        log_info "After editing, verify with: ngrok config check"
+    else
+        log_error "ngrok.yml.example not found in current directory"
+        return 1
+    fi
+}
+
+# Setup ngrok auth token (legacy command)
 setup_auth() {
     local token=$1
     
     if [ -z "$token" ]; then
         log_error "Usage: $0 setup <your-ngrok-auth-token>"
         log_info "Get your token from: https://dashboard.ngrok.com/get-started/your-authtoken"
+        log_info ""
+        log_info "Alternative: Use 'config' command to create ~/.ngrok2/ngrok.yml"
         return 1
     fi
     
@@ -209,6 +277,7 @@ setup_auth() {
     
     log_success "Auth token configured!"
     log_info "You can now use custom domains and other premium features"
+    log_info "For advanced configuration, run: $0 config"
 }
 
 # Main command dispatcher
@@ -230,8 +299,16 @@ case "${1:-status}" in
     logs)
         show_logs
         ;;
+    config)
+        setup_config
+        ;;
     setup)
         setup_auth "$2"
+        ;;
+    check)
+        check_ngrok || exit 1
+        log_header "Ngrok Configuration Check"
+        ngrok config check
         ;;
     url)
         url=$(get_tunnel_url)
@@ -252,8 +329,14 @@ case "${1:-status}" in
         echo "  restart [port]         Restart ngrok tunnel"
         echo "  status                 Show tunnel status and URL"
         echo "  logs                   Show ngrok logs"
-        echo "  setup <token>          Configure ngrok auth token"
+        echo "  config                 Setup ngrok.yml configuration file"
+        echo "  setup <token>          Configure ngrok auth token (quick setup)"
+        echo "  check                  Validate ngrok configuration"
         echo "  url                    Print tunnel URL only"
+        echo ""
+        echo "Configuration:"
+        echo "  Recommended: Use 'config' to create ~/.ngrok2/ngrok.yml"
+        echo "  Quick setup: Use 'setup <token>' for basic auth token configuration"
         echo ""
         echo "Regions: us, eu, ap, au, sa, jp, in"
         echo ""

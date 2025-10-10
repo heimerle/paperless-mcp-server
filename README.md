@@ -172,13 +172,23 @@ cd paperless-mcp-server
 # Install dependencies
 npm install
 
-# Configure your settings
+# Setup ngrok configuration (recommended)
+./ngrok.sh config
+# This creates ~/.ngrok2/ngrok.yml from ngrok.yml.example
+# Edit ~/.ngrok2/ngrok.yml and add your auth token
+
+# Alternative: Quick setup with auth token only
+./ngrok.sh setup your_ngrok_auth_token
+
+# Verify ngrok configuration
+./ngrok.sh check
+
+# Configure your Paperless settings
 cp config.example.sh config.sh
 # Edit config.sh with your Paperless-ngx URL and API token
 
 # Edit config.sh to enable ngrok tunnel:
 export USE_NGROK_TUNNEL="true"
-export NGROK_AUTH_TOKEN="your_ngrok_token"  # Optional, for custom domains
 export NGROK_REGION="us"  # Options: us, eu, ap, au, sa, jp, in
 
 # Load config and start server
@@ -194,6 +204,15 @@ The start script will:
 
 **ngrok Tunnel Management:**
 ```bash
+# Setup ngrok configuration file (recommended)
+./ngrok.sh config
+
+# Quick setup with auth token
+./ngrok.sh setup <your-ngrok-auth-token>
+
+# Verify configuration
+./ngrok.sh check
+
 # Check tunnel status and URL
 ./ngrok.sh status
 
@@ -205,10 +224,17 @@ The start script will:
 
 # View logs
 ./ngrok.sh logs
-
-# Configure auth token
-./ngrok.sh setup <your-ngrok-auth-token>
 ```
+
+**ngrok Configuration File (`~/.ngrok2/ngrok.yml`):**
+The recommended way is to use ngrok's configuration file for better control:
+- Persistent auth token
+- Custom domains (paid plans)
+- Multiple tunnels
+- IP restrictions and authentication
+- Request/response headers
+
+See `ngrok.yml.example` for a complete configuration template.
 
 **Tunnel Persistence:**
 - By default, the ngrok tunnel keeps running when the server restarts

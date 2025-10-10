@@ -88,13 +88,13 @@ smart_config_detection() {
     if [[ -z "$PAPERLESS_URL" ]] || [[ "$PAPERLESS_URL" == "http://localhost:8000" ]]; then
         echo -e "${CYAN}   Auto-detecting Paperless-ngx instance...${NC}"
         
-        # Check common ports and IPs
+        # Check common ports and IPs (preferred URL first)
         local possible_urls=(
-            "http://localhost:8000"
-            "http://localhost:8010" 
             "http://192.168.178.10:8010"
-            "http://127.0.0.1:8000"
+            "http://localhost:8010" 
+            "http://localhost:8000"
             "http://127.0.0.1:8010"
+            "http://127.0.0.1:8000"
         )
         
         for url in "${possible_urls[@]}"; do
@@ -119,11 +119,11 @@ smart_config_detection() {
 auto_load_config
 
 # Set defaults after config loading
-PAPERLESS_URL=${PAPERLESS_URL:-"http://localhost:8000"}
+PAPERLESS_URL=${PAPERLESS_URL:-"http://192.168.178.10:8010"}
 PAPERLESS_TOKEN=${PAPERLESS_TOKEN:-""}
 MCP_TRANSPORT=${MCP_TRANSPORT:-"stdio"}
 MCP_PORT=${MCP_PORT:-"3000"}
-NGROK_REGION=${NGROK_REGION:-"us"}
+NGROK_REGION=${NGROK_REGION:-"eu"}
 USE_NGROK_TUNNEL=${USE_NGROK_TUNNEL:-"false"}
 STOP_TUNNEL_ON_EXIT=${STOP_TUNNEL_ON_EXIT:-"false"}
 

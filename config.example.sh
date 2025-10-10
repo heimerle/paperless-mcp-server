@@ -4,7 +4,7 @@
 # Copy this file to config.sh and customize your settings
 
 # Paperless-ngx connection settings
-export PAPERLESS_URL="http://localhost:8000"
+export PAPERLESS_URL="http://192.168.178.10:8010"
 export PAPERLESS_TOKEN="your-api-token-here"
 
 # MCP Transport settings
@@ -14,7 +14,7 @@ export MCP_PORT="3000"        # Only used for HTTP transport
 # Ngrok Tunnel settings (for HTTP transport + public access)
 export USE_NGROK_TUNNEL="false"  # Set to "true" to enable ngrok tunnel
 export NGROK_AUTH_TOKEN=""       # Optional: Your ngrok auth token for custom domains/features
-export NGROK_REGION="us"         # Ngrok region: us, eu, ap, au, sa, jp, in
+export NGROK_REGION="eu"         # Ngrok region: us, eu, ap, au, sa, jp, in (default: eu)
 
 # Uncomment and customize for your setup:
 # export PAPERLESS_URL="https://your-paperless.example.com"

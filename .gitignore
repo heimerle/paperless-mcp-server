@@ -63,3 +63,6 @@ cloudflared.log
 cloudflared.log.backup.*
 ngrok.log
 ngrok.log.backup.*
+
+# Ngrok configuration (contains auth token)
+ngrok.yml
