@@ -57,7 +57,9 @@ test/
 # Temporary files
 tmp/
 temp/
-# Cloudflare Tunnel temporary files
+# Tunnel temporary files
 .tunnel_url
 cloudflared.log
 cloudflared.log.backup.*
+ngrok.log
+ngrok.log.backup.*
