@@ -9,10 +9,17 @@ dist/
 *.tsbuildinfo
 
 # Environment variables
+# Environment variables
 .env
 .env.local
-.env.production
-.env.test
+.env.*.local
+
+# Personal configuration (contains tokens)
+config.sh
+
+# Cloudflare Tunnel logs
+/tmp/cloudflared-*.log
+nohup.out
 
 # IDE files
 .vscode/
@@ -50,3 +57,7 @@ test/
 # Temporary files
 tmp/
 temp/
+# Cloudflare Tunnel temporary files
+.tunnel_url
+cloudflared.log
+cloudflared.log.backup.*

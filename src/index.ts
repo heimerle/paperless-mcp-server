@@ -419,11 +419,12 @@ async function main() {
         return;
       }
       
-      // MCP SSE endpoint
-      if (parsedUrl.pathname === "/message") {
+      // MCP SSE endpoint (support both /message and /mcp for compatibility)
+      if (parsedUrl.pathname === "/message" || parsedUrl.pathname === "/mcp") {
         if (req.method === "GET") {
           // Start SSE connection
-          const transport = new SSEServerTransport("/message", res);
+          const endpoint = parsedUrl.pathname; // Use the actual requested path
+          const transport = new SSEServerTransport(endpoint, res);
           const sessionId = transport.sessionId;
           transports.set(sessionId, transport);
           
@@ -432,7 +433,7 @@ async function main() {
           };
           
           await server.connect(transport);
-          await transport.start();
+          // Note: server.connect() already calls transport.start()
         } else if (req.method === "POST") {
           // Handle POST message
           let body = "";
@@ -473,7 +474,7 @@ async function main() {
     httpServer.listen(MCP_PORT, () => {
       console.error(`Paperless MCP server running on HTTP port ${MCP_PORT}`);
       console.error(`Health check: http://localhost:${MCP_PORT}/health`);
-      console.error(`MCP endpoint: http://localhost:${MCP_PORT}/message`);
+      console.error(`MCP endpoints: http://localhost:${MCP_PORT}/message or /mcp`);
     });
   } else {
     // STDIO transport (default)
