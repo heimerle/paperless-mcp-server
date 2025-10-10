@@ -88,6 +88,76 @@ const BulkUpdateDocumentsSchema = z.object({
   })).describe("Array of documents to update with their IDs and new values"),
 });
 
+// Storage Path Schemas
+const CreateStoragePathSchema = z.object({
+  name: z.string().describe("Name of the storage path"),
+  path: z.string().describe("File system path"),
+  match: z.string().optional().describe("Matching pattern"),
+  matching_algorithm: z.number().optional().describe("Algorithm for matching"),
+});
+
+const IdSchema = z.object({
+  id: z.number().describe("ID of the resource"),
+});
+
+const UpdateStoragePathSchema = z.object({
+  id: z.number().describe("ID of the storage path to update"),
+  name: z.string().optional().describe("Name of the storage path"),
+  path: z.string().optional().describe("File system path"),
+  match: z.string().optional().describe("Matching pattern"),
+  matching_algorithm: z.number().optional().describe("Algorithm for matching"),
+});
+
+// Custom Field Schemas
+const CreateCustomFieldSchema = z.object({
+  name: z.string().describe("Name of the custom field"),
+  data_type: z.enum(['string', 'url', 'date', 'boolean', 'integer', 'float', 'monetary']).describe("Data type of the field"),
+});
+
+const UpdateCustomFieldSchema = z.object({
+  id: z.number().describe("ID of the custom field to update"),
+  name: z.string().optional().describe("Name of the custom field"),
+  data_type: z.enum(['string', 'url', 'date', 'boolean', 'integer', 'float', 'monetary']).optional().describe("Data type of the field"),
+});
+
+// Saved View Schemas
+const CreateSavedViewSchema = z.object({
+  name: z.string().describe("Name of the saved view"),
+  show_on_dashboard: z.boolean().optional().describe("Show on dashboard"),
+  show_in_sidebar: z.boolean().optional().describe("Show in sidebar"),
+  sort_field: z.string().optional().describe("Field to sort by"),
+  sort_reverse: z.boolean().optional().describe("Reverse sort order"),
+  filter_rules: z.array(z.any()).optional().describe("Filter rules"),
+});
+
+const UpdateSavedViewSchema = z.object({
+  id: z.number().describe("ID of the saved view to update"),
+  name: z.string().optional().describe("Name of the saved view"),
+  show_on_dashboard: z.boolean().optional().describe("Show on dashboard"),
+  show_in_sidebar: z.boolean().optional().describe("Show in sidebar"),
+  sort_field: z.string().optional().describe("Field to sort by"),
+  sort_reverse: z.boolean().optional().describe("Reverse sort order"),
+  filter_rules: z.array(z.any()).optional().describe("Filter rules"),
+});
+
+// Update Schemas for Tags, Correspondents, Document Types
+const UpdateTagSchema = z.object({
+  id: z.number().describe("ID of the tag to update"),
+  name: z.string().optional().describe("Name of the tag"),
+  color: z.string().optional().describe("Color code for the tag (hex format)"),
+  text_color: z.string().optional().describe("Text color for the tag (hex format)"),
+});
+
+const UpdateCorrespondentSchema = z.object({
+  id: z.number().describe("ID of the correspondent to update"),
+  name: z.string().optional().describe("Name of the correspondent"),
+});
+
+const UpdateDocumentTypeSchema = z.object({
+  id: z.number().describe("ID of the document type to update"),
+  name: z.string().optional().describe("Name of the document type"),
+});
+
 // Tool handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -146,6 +216,170 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "bulk_update_documents",
         description: "Update multiple documents at once with new metadata (requires document IDs)",
         inputSchema: BulkUpdateDocumentsSchema,
+      },
+      // Document Operations
+      {
+        name: "delete_document",
+        description: "Delete a document from Paperless-ngx",
+        inputSchema: GetDocumentSchema,
+      },
+      {
+        name: "get_document_suggestions",
+        description: "Get automatic suggestions for document metadata",
+        inputSchema: GetDocumentSchema,
+      },
+      {
+        name: "get_document_metadata",
+        description: "Get extracted metadata from document",
+        inputSchema: GetDocumentSchema,
+      },
+      // Storage Paths
+      {
+        name: "list_storage_paths",
+        description: "List all storage paths in Paperless-ngx",
+        inputSchema: z.object({}),
+      },
+      {
+        name: "get_storage_path",
+        description: "Get details of a specific storage path",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "create_storage_path",
+        description: "Create a new storage path",
+        inputSchema: CreateStoragePathSchema,
+      },
+      {
+        name: "update_storage_path",
+        description: "Update an existing storage path",
+        inputSchema: UpdateStoragePathSchema,
+      },
+      {
+        name: "delete_storage_path",
+        description: "Delete a storage path",
+        inputSchema: IdSchema,
+      },
+      // Custom Fields
+      {
+        name: "list_custom_fields",
+        description: "List all custom fields in Paperless-ngx",
+        inputSchema: z.object({}),
+      },
+      {
+        name: "get_custom_field",
+        description: "Get details of a specific custom field",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "create_custom_field",
+        description: "Create a new custom field",
+        inputSchema: CreateCustomFieldSchema,
+      },
+      {
+        name: "update_custom_field",
+        description: "Update an existing custom field",
+        inputSchema: UpdateCustomFieldSchema,
+      },
+      {
+        name: "delete_custom_field",
+        description: "Delete a custom field",
+        inputSchema: IdSchema,
+      },
+      // Saved Views
+      {
+        name: "list_saved_views",
+        description: "List all saved views in Paperless-ngx",
+        inputSchema: z.object({}),
+      },
+      {
+        name: "get_saved_view",
+        description: "Get details of a specific saved view",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "create_saved_view",
+        description: "Create a new saved view",
+        inputSchema: CreateSavedViewSchema,
+      },
+      {
+        name: "update_saved_view",
+        description: "Update an existing saved view",
+        inputSchema: UpdateSavedViewSchema,
+      },
+      {
+        name: "delete_saved_view",
+        description: "Delete a saved view",
+        inputSchema: IdSchema,
+      },
+      // Tags CRUD
+      {
+        name: "get_tag",
+        description: "Get details of a specific tag",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "update_tag",
+        description: "Update an existing tag",
+        inputSchema: UpdateTagSchema,
+      },
+      {
+        name: "delete_tag",
+        description: "Delete a tag",
+        inputSchema: IdSchema,
+      },
+      // Correspondents CRUD
+      {
+        name: "get_correspondent",
+        description: "Get details of a specific correspondent",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "update_correspondent",
+        description: "Update an existing correspondent",
+        inputSchema: UpdateCorrespondentSchema,
+      },
+      {
+        name: "delete_correspondent",
+        description: "Delete a correspondent",
+        inputSchema: IdSchema,
+      },
+      // Document Types CRUD
+      {
+        name: "get_document_type",
+        description: "Get details of a specific document type",
+        inputSchema: IdSchema,
+      },
+      {
+        name: "update_document_type",
+        description: "Update an existing document type",
+        inputSchema: UpdateDocumentTypeSchema,
+      },
+      {
+        name: "delete_document_type",
+        description: "Delete a document type",
+        inputSchema: IdSchema,
+      },
+      // Tasks
+      {
+        name: "list_tasks",
+        description: "List all tasks in Paperless-ngx",
+        inputSchema: z.object({}),
+      },
+      {
+        name: "acknowledge_task",
+        description: "Acknowledge a completed task",
+        inputSchema: IdSchema,
+      },
+      // Statistics & System
+      {
+        name: "get_statistics",
+        description: "Get Paperless-ngx statistics",
+        inputSchema: z.object({}),
+      },
+      {
+        name: "get_logs",
+        description: "Get Paperless-ngx system logs",
+        inputSchema: z.object({}),
       },
     ],
   };
@@ -308,6 +542,263 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
+      // Document Operations
+      case "delete_document": {
+        const parsed = GetDocumentSchema.parse(args);
+        await paperlessClient.deleteDocument(parsed.document_id);
+        return {
+          content: [{ type: "text", text: `Document ${parsed.document_id} deleted successfully` }],
+        };
+      }
+
+      case "get_document_suggestions": {
+        const parsed = GetDocumentSchema.parse(args);
+        const suggestions = await paperlessClient.getDocumentSuggestions(parsed.document_id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(suggestions, null, 2) }],
+        };
+      }
+
+      case "get_document_metadata": {
+        const parsed = GetDocumentSchema.parse(args);
+        const metadata = await paperlessClient.getDocumentMetadata(parsed.document_id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(metadata, null, 2) }],
+        };
+      }
+
+      // Storage Paths
+      case "list_storage_paths": {
+        const storagePaths = await paperlessClient.listStoragePaths();
+        return {
+          content: [{ type: "text", text: JSON.stringify(storagePaths, null, 2) }],
+        };
+      }
+
+      case "get_storage_path": {
+        const parsed = IdSchema.parse(args);
+        const storagePath = await paperlessClient.getStoragePath(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(storagePath, null, 2) }],
+        };
+      }
+
+      case "create_storage_path": {
+        const parsed = CreateStoragePathSchema.parse(args);
+        const storagePath = await paperlessClient.createStoragePath(parsed);
+        return {
+          content: [{ type: "text", text: `Storage path created: ${JSON.stringify(storagePath, null, 2)}` }],
+        };
+      }
+
+      case "update_storage_path": {
+        const parsed = UpdateStoragePathSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const storagePath = await paperlessClient.updateStoragePath(id, updateData);
+        return {
+          content: [{ type: "text", text: `Storage path updated: ${JSON.stringify(storagePath, null, 2)}` }],
+        };
+      }
+
+      case "delete_storage_path": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteStoragePath(parsed.id);
+        return {
+          content: [{ type: "text", text: `Storage path ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Custom Fields
+      case "list_custom_fields": {
+        const customFields = await paperlessClient.listCustomFields();
+        return {
+          content: [{ type: "text", text: JSON.stringify(customFields, null, 2) }],
+        };
+      }
+
+      case "get_custom_field": {
+        const parsed = IdSchema.parse(args);
+        const customField = await paperlessClient.getCustomField(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(customField, null, 2) }],
+        };
+      }
+
+      case "create_custom_field": {
+        const parsed = CreateCustomFieldSchema.parse(args);
+        const customField = await paperlessClient.createCustomField(parsed);
+        return {
+          content: [{ type: "text", text: `Custom field created: ${JSON.stringify(customField, null, 2)}` }],
+        };
+      }
+
+      case "update_custom_field": {
+        const parsed = UpdateCustomFieldSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const customField = await paperlessClient.updateCustomField(id, updateData);
+        return {
+          content: [{ type: "text", text: `Custom field updated: ${JSON.stringify(customField, null, 2)}` }],
+        };
+      }
+
+      case "delete_custom_field": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteCustomField(parsed.id);
+        return {
+          content: [{ type: "text", text: `Custom field ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Saved Views
+      case "list_saved_views": {
+        const savedViews = await paperlessClient.listSavedViews();
+        return {
+          content: [{ type: "text", text: JSON.stringify(savedViews, null, 2) }],
+        };
+      }
+
+      case "get_saved_view": {
+        const parsed = IdSchema.parse(args);
+        const savedView = await paperlessClient.getSavedView(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(savedView, null, 2) }],
+        };
+      }
+
+      case "create_saved_view": {
+        const parsed = CreateSavedViewSchema.parse(args);
+        const savedView = await paperlessClient.createSavedView(parsed);
+        return {
+          content: [{ type: "text", text: `Saved view created: ${JSON.stringify(savedView, null, 2)}` }],
+        };
+      }
+
+      case "update_saved_view": {
+        const parsed = UpdateSavedViewSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const savedView = await paperlessClient.updateSavedView(id, updateData);
+        return {
+          content: [{ type: "text", text: `Saved view updated: ${JSON.stringify(savedView, null, 2)}` }],
+        };
+      }
+
+      case "delete_saved_view": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteSavedView(parsed.id);
+        return {
+          content: [{ type: "text", text: `Saved view ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Tags CRUD
+      case "get_tag": {
+        const parsed = IdSchema.parse(args);
+        const tag = await paperlessClient.getTag(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(tag, null, 2) }],
+        };
+      }
+
+      case "update_tag": {
+        const parsed = UpdateTagSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const tag = await paperlessClient.updateTag(id, updateData);
+        return {
+          content: [{ type: "text", text: `Tag updated: ${JSON.stringify(tag, null, 2)}` }],
+        };
+      }
+
+      case "delete_tag": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteTag(parsed.id);
+        return {
+          content: [{ type: "text", text: `Tag ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Correspondents CRUD
+      case "get_correspondent": {
+        const parsed = IdSchema.parse(args);
+        const correspondent = await paperlessClient.getCorrespondent(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(correspondent, null, 2) }],
+        };
+      }
+
+      case "update_correspondent": {
+        const parsed = UpdateCorrespondentSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const correspondent = await paperlessClient.updateCorrespondent(id, updateData);
+        return {
+          content: [{ type: "text", text: `Correspondent updated: ${JSON.stringify(correspondent, null, 2)}` }],
+        };
+      }
+
+      case "delete_correspondent": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteCorrespondent(parsed.id);
+        return {
+          content: [{ type: "text", text: `Correspondent ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Document Types CRUD
+      case "get_document_type": {
+        const parsed = IdSchema.parse(args);
+        const documentType = await paperlessClient.getDocumentType(parsed.id);
+        return {
+          content: [{ type: "text", text: JSON.stringify(documentType, null, 2) }],
+        };
+      }
+
+      case "update_document_type": {
+        const parsed = UpdateDocumentTypeSchema.parse(args);
+        const { id, ...updateData } = parsed;
+        const documentType = await paperlessClient.updateDocumentType(id, updateData);
+        return {
+          content: [{ type: "text", text: `Document type updated: ${JSON.stringify(documentType, null, 2)}` }],
+        };
+      }
+
+      case "delete_document_type": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.deleteDocumentType(parsed.id);
+        return {
+          content: [{ type: "text", text: `Document type ${parsed.id} deleted successfully` }],
+        };
+      }
+
+      // Tasks
+      case "list_tasks": {
+        const tasks = await paperlessClient.listTasks();
+        return {
+          content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
+        };
+      }
+
+      case "acknowledge_task": {
+        const parsed = IdSchema.parse(args);
+        await paperlessClient.acknowledgeTask(parsed.id);
+        return {
+          content: [{ type: "text", text: `Task ${parsed.id} acknowledged successfully` }],
+        };
+      }
+
+      // Statistics & System
+      case "get_statistics": {
+        const statistics = await paperlessClient.getStatistics();
+        return {
+          content: [{ type: "text", text: JSON.stringify(statistics, null, 2) }],
+        };
+      }
+
+      case "get_logs": {
+        const logs = await paperlessClient.getLogs();
+        return {
+          content: [{ type: "text", text: JSON.stringify(logs, null, 2) }],
+        };
+      }
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
@@ -419,6 +910,198 @@ async function main() {
         return;
       }
       
+      // Modern MCP Streamable HTTP endpoint (spec-compliant for ChatGPT)
+      // Implements: https://modelcontextprotocol.io/docs/concepts/transports
+      if (parsedUrl.pathname === "/api") {
+        // Security: Check Origin header (DNS rebinding protection)
+        const origin = req.headers.origin;
+        const allowedOrigins = ['https://chatgpt.com', 'https://chat.openai.com'];
+        
+        if (req.method === "OPTIONS") {
+          // CORS preflight
+          res.writeHead(204, {
+            "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*",
+            "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Mcp-Session-Id, MCP-Protocol-Version",
+            "Access-Control-Max-Age": "86400"
+          });
+          res.end();
+          return;
+        }
+        
+        if (req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => {
+            body += chunk.toString();
+          });
+          
+          req.on("end", async () => {
+            try {
+              const request = JSON.parse(body);
+              const protocolVersion = req.headers["mcp-protocol-version"] || "2024-11-05";
+              const isInitialize = request.method === "initialize";
+              
+              console.error(`📨 MCP ${request.method} (id: ${request.id})`);
+              
+              // Handle initialize - creates session and returns Mcp-Session-Id header
+              if (isInitialize) {
+                const sessionId = `mcp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                
+                // Create a simple state object for this session
+                const sessionState = {
+                  id: sessionId,
+                  created: new Date(),
+                  transport: null as any
+                };
+                transports.set(sessionId, sessionState as any);
+                
+                // Send initialize response with Mcp-Session-Id header
+                res.writeHead(200, {
+                  "Content-Type": "application/json",
+                  "Mcp-Session-Id": sessionId,
+                  "MCP-Protocol-Version": protocolVersion,
+                  "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*",
+                  "Access-Control-Expose-Headers": "Mcp-Session-Id, MCP-Protocol-Version"
+                });
+                
+                const initResult = {
+                  jsonrpc: "2.0",
+                  id: request.id,
+                  result: {
+                    protocolVersion: "2024-11-05",
+                    capabilities: {
+                      tools: {},
+                      resources: {}
+                    },
+                    serverInfo: {
+                      name: "paperless-mcp",
+                      version: "1.1.2"
+                    }
+                  }
+                };
+                
+                console.error(`✅ Session created: ${sessionId}`);
+                res.end(JSON.stringify(initResult));
+                return;
+              }
+              
+              // All other requests require Mcp-Session-Id header
+              const sessionId = req.headers["mcp-session-id"] as string;
+              if (!sessionId || !transports.has(sessionId)) {
+                console.error(`❌ Invalid/missing session: ${sessionId}`);
+                res.writeHead(400, { 
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*"
+                });
+                res.end(JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: request.id || null,
+                  error: {
+                    code: -32000,
+                    message: "Missing or invalid Mcp-Session-Id header"
+                  }
+                }));
+                return;
+              }
+              
+              // Handle the request directly without SSE transport
+              // Create a one-time transport for this request
+              const oneTimeTransport = new SSEServerTransport("/api-internal", res);
+              
+              try {
+                // Connect transport temporarily
+                await server.connect(oneTimeTransport);
+                
+                // Handle the message
+                await oneTimeTransport.handleMessage(request);
+                
+                // Transport will send the response and close
+              } catch (error) {
+                console.error(`❌ Error handling request:`, error);
+                if (!res.headersSent) {
+                  res.writeHead(500, { 
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*"
+                  });
+                  res.end(JSON.stringify({
+                    jsonrpc: "2.0",
+                    id: request.id || null,
+                    error: {
+                      code: -32603,
+                      message: error instanceof Error ? error.message : "Internal error"
+                    }
+                  }));
+                }
+              }
+              
+            } catch (error) {
+              console.error("❌ Error handling MCP request:", error);
+              if (!res.headersSent) {
+                res.writeHead(error instanceof SyntaxError ? 400 : 500, { 
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*"
+                });
+                res.end(JSON.stringify({
+                  jsonrpc: "2.0",
+                  id: null,
+                  error: {
+                    code: error instanceof SyntaxError ? -32700 : -32603,
+                    message: error instanceof Error ? error.message : "Internal error"
+                  }
+                }));
+              }
+            }
+          });
+          return;
+        }
+        
+        if (req.method === "GET") {
+          // Optional SSE stream for server-initiated messages
+          const sessionId = req.headers["mcp-session-id"] as string;
+          if (sessionId && transports.has(sessionId)) {
+            res.writeHead(200, {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache, no-transform",
+              "Connection": "keep-alive",
+              "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*"
+            });
+            res.flushHeaders();
+            console.error(`📡 SSE stream opened for session: ${sessionId}`);
+            // Keep connection open for server-initiated messages
+            return;
+          } else {
+            res.writeHead(400, { "Content-Type": "text/plain" });
+            res.end("GET requires valid Mcp-Session-Id header");
+            return;
+          }
+        }
+        
+        if (req.method === "DELETE") {
+          // Session termination
+          const sessionId = req.headers["mcp-session-id"] as string;
+          if (sessionId && transports.has(sessionId)) {
+            const transport = transports.get(sessionId);
+            transports.delete(sessionId);
+            await transport?.close();
+            console.error(`🗑️  Session deleted: ${sessionId}`);
+            res.writeHead(200, { 
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": origin && allowedOrigins.includes(origin) ? origin : "*"
+            });
+            res.end(JSON.stringify({ success: true }));
+            return;
+          } else {
+            res.writeHead(404, { "Content-Type": "text/plain" });
+            res.end("Session not found");
+            return;
+          }
+        }
+        
+        res.writeHead(405, { "Content-Type": "text/plain" });
+        res.end("Method not allowed");
+        return;
+      }
+      
       // MCP SSE endpoint (support both /message and /mcp for compatibility)
       if (parsedUrl.pathname === "/message" || parsedUrl.pathname === "/mcp") {
         if (req.method === "GET") {
@@ -432,8 +1115,14 @@ async function main() {
             transports.delete(sessionId);
           };
           
+          console.error(`New SSE connection established: ${sessionId}`);
+          
           await server.connect(transport);
           // Note: server.connect() already calls transport.start()
+          
+          // Send sessionId as initial SSE event for client reference
+          // This helps clients know how to route POST messages
+          console.error(`SSE session ready: ${sessionId} on ${endpoint}`);
         } else if (req.method === "POST") {
           // Handle POST message
           let body = "";

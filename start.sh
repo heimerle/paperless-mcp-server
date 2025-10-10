@@ -65,9 +65,9 @@ smart_config_detection() {
     echo -e "${BLUE}🔍 Smart configuration detection...${NC}"
     
     # Only auto-detect transport if not explicitly configured
-    if [[ -z "$MCP_TRANSPORT" ]] || [[ "$MCP_TRANSPORT" == "stdio" && ("$USE_CLOUDFLARE_TUNNEL" == "true" || -n "$SSH_CLIENT" || -n "$SSH_TTY") ]]; then
+    if [[ -z "$MCP_TRANSPORT" ]] || [[ "$MCP_TRANSPORT" == "stdio" && ("$USE_NGROK_TUNNEL" == "true" || -n "$SSH_CLIENT" || -n "$SSH_TTY") ]]; then
         # Auto-detect if we should use HTTP transport based on environment
-        if [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]] || [[ "$USE_CLOUDFLARE_TUNNEL" == "true" ]]; then
+        if [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]] || [[ "$USE_NGROK_TUNNEL" == "true" ]]; then
             MCP_TRANSPORT="http"
             echo -e "${CYAN}   Detected remote/tunnel environment → HTTP transport${NC}"
         else
@@ -123,8 +123,9 @@ PAPERLESS_URL=${PAPERLESS_URL:-"http://localhost:8000"}
 PAPERLESS_TOKEN=${PAPERLESS_TOKEN:-""}
 MCP_TRANSPORT=${MCP_TRANSPORT:-"stdio"}
 MCP_PORT=${MCP_PORT:-"3000"}
-CLOUDFLARE_TUNNEL_NAME=${CLOUDFLARE_TUNNEL_NAME:-"paperless-mcp"}
-USE_CLOUDFLARE_TUNNEL=${USE_CLOUDFLARE_TUNNEL:-"false"}
+NGROK_REGION=${NGROK_REGION:-"us"}
+USE_NGROK_TUNNEL=${USE_NGROK_TUNNEL:-"false"}
+STOP_TUNNEL_ON_EXIT=${STOP_TUNNEL_ON_EXIT:-"false"}
 
 # Run smart detection
 smart_config_detection
@@ -234,40 +235,36 @@ test_paperless_connection() {
     return 0
 }
 
-# Cloudflare Tunnel function for ephemeral tunnels
-start_cloudflare_tunnel() {
-    log_header "Starting Cloudflare Tunnel"
+# Ngrok Tunnel function with persistence
+start_ngrok_tunnel() {
+    log_header "Starting Ngrok Tunnel"
     
     # Check if tunnel is already running and get existing URL
-    EXISTING_TUNNEL_PID=$(pgrep -f "cloudflared tunnel" || true)
+    EXISTING_TUNNEL_PID=$(pgrep -f "ngrok http" || true)
     TUNNEL_URL=""
     
     # If a tunnel process is running, try to reuse it
     if [ ! -z "$EXISTING_TUNNEL_PID" ]; then
         log_info "Found existing tunnel process (PID: $EXISTING_TUNNEL_PID)"
         
-        # Try to get tunnel URL from log file
-        if [ -f "cloudflared.log" ]; then
-            TUNNEL_URL=$(grep -o 'https://.*\.trycloudflare\.com' cloudflared.log | tail -1)
-        fi
+        # Try to get tunnel URL from ngrok API
+        sleep 1  # Give API a moment to respond
+        TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | grep -o '"public_url":"https://[^"]*"' | head -1 | cut -d'"' -f4)
         
         # If we have a URL, verify the tunnel is still responding
         if [ ! -z "$TUNNEL_URL" ]; then
             log_info "Testing existing tunnel at: ${CYAN}$TUNNEL_URL${NC}"
             
-            # Give tunnel a moment to be ready if it just started
-            sleep 2
-            
-            # Simple connectivity test without requiring the MCP server
+            # Simple connectivity test
             if curl -s --max-time 5 --head "$TUNNEL_URL" >/dev/null 2>&1; then
                 log_success "Existing tunnel is working: ${CYAN}$TUNNEL_URL${NC}"
                 TUNNEL_PID=$EXISTING_TUNNEL_PID
                 echo ""
                 log_info "Public URL: ${CYAN}$TUNNEL_URL${NC}"
+                log_info "Dashboard:  ${CYAN}http://localhost:4040${NC}"
                 log_info "Once server starts, check:"
-                log_info "  • Health: ${CYAN}$TUNNEL_URL/health${NC}"
-                log_info "  • API Docs: ${CYAN}$TUNNEL_URL/docs${NC}"
-                log_info "  • MCP Tools: ${CYAN}$TUNNEL_URL/mcp/tools${NC}"
+                log_info "  • Health:   ${CYAN}$TUNNEL_URL/health${NC}"
+                log_info "  • MCP API:  ${CYAN}$TUNNEL_URL/api${NC}"
                 
                 # Save tunnel URL
                 echo "$TUNNEL_URL" > .tunnel_url
@@ -279,27 +276,24 @@ start_cloudflare_tunnel() {
                 sleep 2
             fi
         else
-            log_info "Existing tunnel found but no URL yet, will reuse process"
+            log_info "Existing tunnel found, waiting for URL..."
             TUNNEL_PID=$EXISTING_TUNNEL_PID
             
-            # Wait for URL to appear in log
-            log_info "Waiting for tunnel URL from existing process..."
-            for i in {1..30}; do
-                if [ -f "cloudflared.log" ]; then
-                    TUNNEL_URL=$(grep -o 'https://.*\.trycloudflare\.com' cloudflared.log | tail -1)
-                    if [ ! -z "$TUNNEL_URL" ]; then
-                        log_success "Tunnel URL available: ${CYAN}$TUNNEL_URL${NC}"
-                        echo ""
-                        log_info "Public URL: ${CYAN}$TUNNEL_URL${NC}"
-                        log_info "Once server starts, check:"
-                        log_info "  • Health: ${CYAN}$TUNNEL_URL/health${NC}"
-                        log_info "  • API Docs: ${CYAN}$TUNNEL_URL/docs${NC}"
-                        log_info "  • MCP Tools: ${CYAN}$TUNNEL_URL/mcp/tools${NC}"
-                        
-                        # Save tunnel URL
-                        echo "$TUNNEL_URL" > .tunnel_url
-                        return 0
-                    fi
+            # Wait for URL to appear via API
+            for i in {1..15}; do
+                TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | grep -o '"public_url":"https://[^"]*"' | head -1 | cut -d'"' -f4)
+                if [ ! -z "$TUNNEL_URL" ]; then
+                    log_success "Tunnel URL available: ${CYAN}$TUNNEL_URL${NC}"
+                    echo ""
+                    log_info "Public URL: ${CYAN}$TUNNEL_URL${NC}"
+                    log_info "Dashboard:  ${CYAN}http://localhost:4040${NC}"
+                    log_info "Once server starts, check:"
+                    log_info "  • Health:   ${CYAN}$TUNNEL_URL/health${NC}"
+                    log_info "  • MCP API:  ${CYAN}$TUNNEL_URL/api${NC}"
+                    
+                    # Save tunnel URL
+                    echo "$TUNNEL_URL" > .tunnel_url
+                    return 0
                 fi
                 sleep 2
                 echo -n "."
@@ -311,73 +305,70 @@ start_cloudflare_tunnel() {
         fi
     fi
     
-    log_info "Creating new cloudflare tunnel to http://localhost:$MCP_HTTP_PORT..."
+    log_info "Creating new ngrok tunnel to http://localhost:$MCP_HTTP_PORT (region: $NGROK_REGION)..."
     
     # Backup old log file if it exists
-    if [ -f "cloudflared.log" ]; then
-        mv cloudflared.log "cloudflared.log.backup.$(date +%s)"
+    if [ -f "ngrok.log" ]; then
+        mv ngrok.log "ngrok.log.backup.$(date +%s)"
     fi
     
-    # Start new cloudflared tunnel in background
-    cloudflared tunnel --url "http://localhost:$MCP_HTTP_PORT" --logfile cloudflared.log &
+    # Start new ngrok tunnel in background
+    ngrok http $MCP_HTTP_PORT --region=$NGROK_REGION --log=ngrok.log --log-format=json > /dev/null 2>&1 &
     TUNNEL_PID=$!
     
-    log_success "New cloudflare tunnel started (PID: $TUNNEL_PID)"
+    log_success "New ngrok tunnel started (PID: $TUNNEL_PID)"
     
     # Wait for tunnel URL to be available
-    log_info "Waiting for new tunnel URL..."
+    log_info "Waiting for tunnel URL..."
     for i in {1..30}; do
-        if [ -f "cloudflared.log" ]; then
-            TUNNEL_URL=$(grep -o 'https://.*\.trycloudflare\.com' cloudflared.log | tail -1)
-            if [ ! -z "$TUNNEL_URL" ]; then
-                log_success "New tunnel available at: ${CYAN}$TUNNEL_URL${NC}"
-                echo ""
-                log_info "The tunnel is ready, MCP server will start next"
-                log_info "Public URL: ${CYAN}$TUNNEL_URL${NC}"
-                log_info "Once server starts, check:"
-                log_info "  • Health: ${CYAN}$TUNNEL_URL/health${NC}"
-                log_info "  • API Docs: ${CYAN}$TUNNEL_URL/docs${NC}"
-                log_info "  • MCP Tools: ${CYAN}$TUNNEL_URL/mcp/tools${NC}"
-                
-                # Save tunnel URL for future use
-                echo "$TUNNEL_URL" > .tunnel_url
-                return 0
-            fi
+        TUNNEL_URL=$(curl -s http://localhost:4040/api/tunnels 2>/dev/null | grep -o '"public_url":"https://[^"]*"' | head -1 | cut -d'"' -f4)
+        if [ ! -z "$TUNNEL_URL" ]; then
+            log_success "Tunnel ready at: ${CYAN}$TUNNEL_URL${NC}"
+            echo ""
+            log_info "Public URL: ${CYAN}$TUNNEL_URL${NC}"
+            log_info "Dashboard:  ${CYAN}http://localhost:4040${NC}"
+            log_info "Once server starts, check:"
+            log_info "  • Health:   ${CYAN}$TUNNEL_URL/health${NC}"
+            log_info "  • MCP API:  ${CYAN}$TUNNEL_URL/api${NC}"
+            
+            # Save tunnel URL for future use
+            echo "$TUNNEL_URL" > .tunnel_url
+            return 0
         fi
-        sleep 2
+        sleep 1
         echo -n "."
     done
     echo ""
     
     if [ -z "$TUNNEL_URL" ]; then
         log_warning "Tunnel started but URL not available yet"
-        log_info "Check cloudflared.log for tunnel URL"
+        log_info "Check ngrok.log or http://localhost:4040"
         log_info "You can still access the server locally at: http://localhost:$MCP_HTTP_PORT"
         return 0  # Don't fail the script if tunnel URL isn't available immediately
     fi
 }
 
-# Smart Cloudflare Tunnel management
+# Smart Ngrok Tunnel management
 smart_tunnel_management() {
-    if [[ "$USE_CLOUDFLARE_TUNNEL" != "true" ]]; then
+    if [[ "$USE_NGROK_TUNNEL" != "true" ]]; then
         return 0
     fi
     
     # Force HTTP transport for tunnels
     if [[ "$MCP_TRANSPORT" != "http" ]]; then
-        echo -e "${CYAN}   Cloudflare Tunnel requires HTTP transport, switching...${NC}"
+        echo -e "${CYAN}   Ngrok Tunnel requires HTTP transport, switching...${NC}"
         MCP_TRANSPORT="http"
     fi
     
-    # Check if cloudflared is installed
-    if ! command -v cloudflared &> /dev/null; then
-        echo -e "${YELLOW}⚠️  cloudflared not found, attempting to install...${NC}"
+    # Check if ngrok is installed
+    if ! command -v ngrok &> /dev/null; then
+        echo -e "${YELLOW}⚠️  ngrok not found, attempting to install...${NC}"
         if command -v brew &> /dev/null; then
-            brew install cloudflared
-            echo -e "${GREEN}✅ cloudflared installed${NC}"
+            brew install ngrok
+            echo -e "${GREEN}✅ ngrok installed${NC}"
         else
-            echo -e "${RED}❌ Please install cloudflared manually${NC}"
-            echo -e "${CYAN}   https://github.com/cloudflare/cloudflared/releases${NC}"
+            echo -e "${RED}❌ Please install ngrok manually${NC}"
+            echo -e "${CYAN}   https://ngrok.com/download${NC}"
             return 1
         fi
     fi
@@ -385,8 +376,8 @@ smart_tunnel_management() {
     # Use MCP_PORT as MCP_HTTP_PORT for compatibility with tunnel function
     export MCP_HTTP_PORT=$MCP_PORT
     
-    # Call the new ephemeral tunnel function
-    start_cloudflare_tunnel
+    # Call the ngrok tunnel function
+    start_ngrok_tunnel
 }
 
 # Run all checks
@@ -415,12 +406,13 @@ cleanup() {
     
     # Only stop tunnel if explicitly requested via environment variable
     if [[ "$STOP_TUNNEL_ON_EXIT" == "true" ]] && [[ -n "$TUNNEL_PID" ]]; then
-        echo -e "${CYAN}   Stopping Cloudflare Tunnel (PID: $TUNNEL_PID)...${NC}"
+        echo -e "${CYAN}   Stopping Ngrok Tunnel (PID: $TUNNEL_PID)...${NC}"
         kill $TUNNEL_PID 2>/dev/null || true
+        rm -f .tunnel_url 2>/dev/null
     elif [[ -n "$TUNNEL_PID" ]]; then
-        echo -e "${CYAN}   ℹ  Cloudflare Tunnel (PID: $TUNNEL_PID) keeps running${NC}"
-        echo -e "${CYAN}   ℹ  Tunnel URL: ${GREEN}$(cat .tunnel_url 2>/dev/null || echo 'check cloudflared.log')${NC}"
-        echo -e "${CYAN}   ℹ  To stop tunnel: ${GREEN}pkill -f 'cloudflared tunnel'${NC}"
+        echo -e "${CYAN}   ℹ  Ngrok Tunnel (PID: $TUNNEL_PID) keeps running${NC}"
+        echo -e "${CYAN}   ℹ  Tunnel URL: ${GREEN}$(cat .tunnel_url 2>/dev/null || echo 'check http://localhost:4040')${NC}"
+        echo -e "${CYAN}   ℹ  To stop tunnel: ${GREEN}./ngrok.sh stop${NC}"
     fi
     
     echo -e "${GREEN}✅ MCP Server stopped${NC}"
@@ -444,14 +436,14 @@ export MCP_PORT
 if [[ "$MCP_TRANSPORT" == "http" ]]; then
     echo -e "${BLUE}🌐 Starting HTTP server on port $MCP_PORT...${NC}"
     echo -e "${CYAN}   Health check: ${GREEN}http://localhost:$MCP_PORT/health${NC}"
-    echo -e "${CYAN}   MCP endpoint: ${GREEN}http://localhost:$MCP_PORT/message${NC}"
-    if [[ "$USE_CLOUDFLARE_TUNNEL" == "true" ]]; then
-        echo -e "${CYAN}   Tunnel status: ${GREEN}Check ./tunnel.sh status${NC}"
+    echo -e "${CYAN}   MCP endpoint: ${GREEN}http://localhost:$MCP_PORT/api${NC}"
+    if [[ "$USE_NGROK_TUNNEL" == "true" ]]; then
+        echo -e "${CYAN}   Tunnel status: ${GREEN}./ngrok.sh status${NC}"
         echo ""
         echo -e "${BLUE}ℹ️  Tunnel Persistence:${NC}"
         echo -e "${CYAN}   • Tunnel keeps running when server stops${NC}"
         echo -e "${CYAN}   • Server restarts will reuse existing tunnel${NC}"
-        echo -e "${CYAN}   • To stop tunnel: ${GREEN}pkill -f 'cloudflared tunnel'${NC}"
+        echo -e "${CYAN}   • To stop tunnel: ${GREEN}./ngrok.sh stop${NC}"
         echo -e "${CYAN}   • To stop tunnel on exit: ${GREEN}STOP_TUNNEL_ON_EXIT=true ./start.sh${NC}"
     fi
     echo ""

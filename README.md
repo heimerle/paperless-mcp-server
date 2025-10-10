@@ -6,18 +6,65 @@ A Model Context Protocol (MCP) server for integrating with Paperless-ngx documen
 
 ## Features
 
-### 🔧 Tools
+### 🔧 Tools (41 total)
+
+#### Documents (14 tools)
 - **search_documents**: Search for documents with flexible filtering options
 - **get_document**: Retrieve detailed information about specific documents
 - **update_document**: Modify document metadata (title, tags, correspondent, etc.)
 - **bulk_update_documents**: Update multiple documents at once (requires document IDs)
-- **list_tags**: Get all available tags
-- **list_correspondents**: Get all correspondents
-- **list_document_types**: Get all document types
-- **create_tag**: Create new tags
-- **create_correspondent**: Create new correspondents
-- **create_document_type**: Create new document types
+- **delete_document**: Delete a document from Paperless-ngx
 - **download_document**: Get download URLs for documents
+- **get_document_suggestions**: Get automatic suggestions for document metadata
+- **get_document_metadata**: Get extracted metadata from document
+
+#### Tags (6 tools)
+- **list_tags**: Get all available tags
+- **get_tag**: Get details of a specific tag
+- **create_tag**: Create new tags with color
+- **update_tag**: Update existing tag properties
+- **delete_tag**: Delete a tag
+
+#### Correspondents (6 tools)
+- **list_correspondents**: Get all correspondents
+- **get_correspondent**: Get details of a specific correspondent
+- **create_correspondent**: Create new correspondents
+- **update_correspondent**: Update existing correspondent
+- **delete_correspondent**: Delete a correspondent
+
+#### Document Types (6 tools)
+- **list_document_types**: Get all document types
+- **get_document_type**: Get details of a specific document type
+- **create_document_type**: Create new document types
+- **update_document_type**: Update existing document type
+- **delete_document_type**: Delete a document type
+
+#### Storage Paths (5 tools)
+- **list_storage_paths**: List all storage paths
+- **get_storage_path**: Get details of a specific storage path
+- **create_storage_path**: Create new storage path
+- **update_storage_path**: Update existing storage path
+- **delete_storage_path**: Delete a storage path
+
+#### Custom Fields (5 tools)
+- **list_custom_fields**: List all custom fields
+- **get_custom_field**: Get details of a specific custom field
+- **create_custom_field**: Create new custom field (string, url, date, boolean, integer, float, monetary)
+- **update_custom_field**: Update existing custom field
+- **delete_custom_field**: Delete a custom field
+
+#### Saved Views (5 tools)
+- **list_saved_views**: List all saved views
+- **get_saved_view**: Get details of a specific saved view
+- **create_saved_view**: Create new saved view with filters
+- **update_saved_view**: Update existing saved view
+- **delete_saved_view**: Delete a saved view
+
+#### System & Tasks (4 tools)
+- **list_tasks**: List all tasks in Paperless-ngx
+- **acknowledge_task**: Acknowledge a completed task
+- **get_statistics**: Get Paperless-ngx statistics (doc counts, types, etc.)
+- **get_logs**: Get Paperless-ngx system logs
 
 ### 📄 Resources
 - **Document Content**: Access full document content as resources for AI context
@@ -114,29 +161,64 @@ export PAPERLESS_TOKEN="your_api_token_here"
 paperless-mcp
 ```
 
-#### HTTP Transport
-For HTTP-based integrations with Server-Sent Events (SSE):
+#### HTTP Transport with ngrok Tunnel
+For HTTP-based integrations with ChatGPT and other HTTP clients using Streamable HTTP protocol:
 
 ```bash
-# Using environment variables
-export MCP_TRANSPORT="http"
-export MCP_PORT="3000"
-export PAPERLESS_URL="http://your-paperless-instance:8000"
-export PAPERLESS_TOKEN="your_api_token_here"
-paperless-mcp
+# Clone the repository for development setup
+git clone https://github.com/heimerle/paperless-mcp-server
+cd paperless-mcp-server
 
-# Or using npm scripts
-npm run start:http        # Production
-npm run dev:http          # Development
+# Install dependencies
+npm install
 
-# Or inline
-MCP_TRANSPORT=http MCP_PORT=3000 paperless-mcp
+# Configure your settings
+cp config.example.sh config.sh
+# Edit config.sh with your Paperless-ngx URL and API token
+
+# Edit config.sh to enable ngrok tunnel:
+export USE_NGROK_TUNNEL="true"
+export NGROK_AUTH_TOKEN="your_ngrok_token"  # Optional, for custom domains
+export NGROK_REGION="us"  # Options: us, eu, ap, au, sa, jp, in
+
+# Load config and start server
+source config.sh
+./start.sh
 ```
+
+The start script will:
+1. Check for existing ngrok tunnels and reuse them if available
+2. Start the MCP server on port 3000
+3. Create an ngrok tunnel with a persistent URL
+4. Display the public URL for ChatGPT integration
+
+**ngrok Tunnel Management:**
+```bash
+# Check tunnel status and URL
+./ngrok.sh status
+
+# Get current tunnel URL
+./ngrok.sh url
+
+# Restart tunnel
+./ngrok.sh restart 3000
+
+# View logs
+./ngrok.sh logs
+
+# Configure auth token
+./ngrok.sh setup <your-ngrok-auth-token>
+```
+
+**Tunnel Persistence:**
+- By default, the ngrok tunnel keeps running when the server restarts
+- This ensures your ChatGPT connector URL stays stable
+- Set `STOP_TUNNEL_ON_EXIT="true"` in config.sh to stop tunnel on server exit
 
 HTTP endpoints:
 - `GET /health` - Health check
-- `GET /message` - SSE connection for receiving messages  
-- `POST /message?sessionId=<id>` - Send messages to server
+- `POST /api` - Modern Streamable HTTP with Mcp-Session-Id headers (for ChatGPT)
+- Legacy endpoints: `GET /message`, `POST /message`, `/mcp` (SSE-based)
 
 ### With Other MCP Clients
 
@@ -154,15 +236,35 @@ PAPERLESS_URL=http://your-paperless-instance:8000 PAPERLESS_TOKEN=your_token npx
 
 ## API Coverage
 
-This MCP server covers the following Paperless-ngx API endpoints:
+This MCP server provides comprehensive coverage of the Paperless-ngx API:
 
-- `/api/documents/` - Document search and listing
-- `/api/documents/{id}/` - Document retrieval and updates
-- `/api/documents/{id}/content/` - Document content access
-- `/api/documents/{id}/download/` - Document download URLs
+### Fully Implemented (41 MCP Tools)
+- **Documents**: Full CRUD + search, content, metadata, suggestions, bulk operations
+- **Tags**: Complete CRUD operations
+- **Correspondents**: Complete CRUD operations  
+- **Document Types**: Complete CRUD operations
+- **Storage Paths**: Complete CRUD operations
+- **Custom Fields**: Complete CRUD operations (all data types)
+- **Saved Views**: Complete CRUD operations with filters
+- **Tasks**: List and acknowledge tasks
+- **System**: Statistics and logs
+
+### Paperless-ngx API Endpoints Used
+- `/api/documents/` - Document operations
+- `/api/documents/{id}/` - Specific document access
+- `/api/documents/{id}/content/` - Full text content
+- `/api/documents/{id}/download/` - Original file download
+- `/api/documents/{id}/suggestions/` - AI metadata suggestions
+- `/api/documents/{id}/metadata/` - Extracted metadata
 - `/api/tags/` - Tag management
 - `/api/correspondents/` - Correspondent management
 - `/api/document_types/` - Document type management
+- `/api/storage_paths/` - Storage path configuration
+- `/api/custom_fields/` - Custom field definitions
+- `/api/saved_views/` - Saved view management
+- `/api/tasks/` - Background task monitoring
+- `/api/statistics/` - System statistics
+- `/api/logs/` - System logs
 
 ## Example Interactions
 
