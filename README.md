@@ -161,7 +161,7 @@ export PAPERLESS_TOKEN="your_api_token_here"
 paperless-mcp
 ```
 
-#### HTTP Transport with ngrok Tunnel
+#### HTTP Transport
 For HTTP-based integrations with ChatGPT and other HTTP clients using Streamable HTTP protocol:
 
 ```bash
@@ -172,74 +172,14 @@ cd paperless-mcp-server
 # Install dependencies
 npm install
 
-# Setup ngrok configuration (recommended)
-./ngrok.sh config
-# This creates ~/.ngrok2/ngrok.yml from ngrok.yml.example
-# Edit ~/.ngrok2/ngrok.yml and add your auth token
-
-# Alternative: Quick setup with auth token only
-./ngrok.sh setup your_ngrok_auth_token
-
-# Verify ngrok configuration
-./ngrok.sh check
-
 # Configure your Paperless settings
 cp config.example.sh config.sh
 # Edit config.sh with your Paperless-ngx URL and API token
-
-# Edit config.sh to enable ngrok tunnel:
-export USE_NGROK_TUNNEL="true"
-export NGROK_REGION="us"  # Options: us, eu, ap, au, sa, jp, in
 
 # Load config and start server
 source config.sh
 ./start.sh
 ```
-
-The start script will:
-1. Check for existing ngrok tunnels and reuse them if available
-2. Start the MCP server on port 3000
-3. Create an ngrok tunnel with a persistent URL
-4. Display the public URL for ChatGPT integration
-
-**ngrok Tunnel Management:**
-```bash
-# Setup ngrok configuration file (recommended)
-./ngrok.sh config
-
-# Quick setup with auth token
-./ngrok.sh setup <your-ngrok-auth-token>
-
-# Verify configuration
-./ngrok.sh check
-
-# Check tunnel status and URL
-./ngrok.sh status
-
-# Get current tunnel URL
-./ngrok.sh url
-
-# Restart tunnel
-./ngrok.sh restart 3000
-
-# View logs
-./ngrok.sh logs
-```
-
-**ngrok Configuration File (`~/.ngrok2/ngrok.yml`):**
-The recommended way is to use ngrok's configuration file for better control:
-- Persistent auth token
-- Custom domains (paid plans)
-- Multiple tunnels
-- IP restrictions and authentication
-- Request/response headers
-
-See `ngrok.yml.example` for a complete configuration template.
-
-**Tunnel Persistence:**
-- By default, the ngrok tunnel keeps running when the server restarts
-- This ensures your ChatGPT connector URL stays stable
-- Set `STOP_TUNNEL_ON_EXIT="true"` in config.sh to stop tunnel on server exit
 
 HTTP endpoints:
 - `GET /health` - Health check

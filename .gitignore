@@ -17,10 +17,6 @@ dist/
 # Personal configuration (contains tokens)
 config.sh
 
-# Cloudflare Tunnel logs
-/tmp/cloudflared-*.log
-nohup.out
-
 # IDE files
 .vscode/
 .idea/
@@ -57,12 +53,3 @@ test/
 # Temporary files
 tmp/
 temp/
-# Tunnel temporary files
-.tunnel_url
-cloudflared.log
-cloudflared.log.backup.*
-ngrok.log
-ngrok.log.backup.*
-
-# Ngrok configuration (contains auth token)
-ngrok.yml
