@@ -8,57 +8,47 @@ A Model Context Protocol (MCP) server for integrating with Paperless-ngx documen
 
 ### 🔧 Tools (41 total)
 
-#### Documents (14 tools)
-- **search_documents**: Search for documents with flexible filtering options
-- **get_document**: Retrieve detailed information about specific documents
-- **update_document**: Modify document metadata (title, tags, correspondent, etc.)
-- **bulk_update_documents**: Update multiple documents at once (requires document IDs)
-- **delete_document**: Delete a document from Paperless-ngx
-- **download_document**: Get download URLs for documents
-- **get_document_suggestions**: Get automatic suggestions for document metadata
-- **get_document_metadata**: Get extracted metadata from document
+### Transport Options
 
-#### Tags (6 tools)
-- **list_tags**: Get all available tags
-- **get_tag**: Get details of a specific tag
-- **create_tag**: Create new tags with color
-- **update_tag**: Update existing tag properties
-- **delete_tag**: Delete a tag
+The server supports three transport modes, selectable via the `MCP_TRANSPORT` environment variable:
 
-#### Correspondents (6 tools)
-- **list_correspondents**: Get all correspondents
-- **get_correspondent**: Get details of a specific correspondent
-- **create_correspondent**: Create new correspondents
-- **update_correspondent**: Update existing correspondent
-- **delete_correspondent**: Delete a correspondent
+- `stdio` (default): For MCP clients like Claude Desktop that use stdin/stdout communication
+- `http`: For HTTP-based integrations (e.g., ChatGPT, browser clients)
+- `both`: Start both HTTP and STDIO servers simultaneously
 
-#### Document Types (6 tools)
-- **list_document_types**: Get all document types
-- **get_document_type**: Get details of a specific document type
-- **create_document_type**: Create new document types
-- **update_document_type**: Update existing document type
-- **delete_document_type**: Delete a document type
+#### Example Usage
 
-#### Storage Paths (5 tools)
-- **list_storage_paths**: List all storage paths
-- **get_storage_path**: Get details of a specific storage path
-- **create_storage_path**: Create new storage path
-- **update_storage_path**: Update existing storage path
-- **delete_storage_path**: Delete a storage path
+```bash
+# Environment variables
+export PAPERLESS_URL="http://your-paperless-instance:8000"
+export PAPERLESS_TOKEN="your_api_token_here"
 
-#### Custom Fields (5 tools)
-- **list_custom_fields**: List all custom fields
-- **get_custom_field**: Get details of a specific custom field
-- **create_custom_field**: Create new custom field (string, url, date, boolean, integer, float, monetary)
-- **update_custom_field**: Update existing custom field
-- **delete_custom_field**: Delete a custom field
+# STDIO only (default)
+export MCP_TRANSPORT="stdio"
+./start.sh
 
-#### Saved Views (5 tools)
-- **list_saved_views**: List all saved views
-- **get_saved_view**: Get details of a specific saved view
-- **create_saved_view**: Create new saved view with filters
-- **update_saved_view**: Update existing saved view
-- **delete_saved_view**: Delete a saved view
+# HTTP only
+export MCP_TRANSPORT="http"
+export MCP_PORT="3000"
+./start.sh
+
+# Both HTTP and STDIO
+export MCP_TRANSPORT="both"
+export MCP_PORT="3000"
+./start.sh
+```
+
+The start script will:
+- Start the MCP server(s) according to your selected mode
+- Print local HTTP endpoints and/or STDIO readiness
+
+**No tunneling or public exposure is included by default.**
+For remote access, use your own reverse proxy, VPN, or secure tunnel solution.
+
+HTTP endpoints:
+- `GET /health` - Health check
+- `POST /api` - Modern Streamable HTTP with Mcp-Session-Id headers (for ChatGPT)
+- Legacy endpoints: `GET /message`, `POST /message`, `/mcp` (SSE-based)
 
 #### System & Tasks (4 tools)
 - **list_tasks**: List all tasks in Paperless-ngx
@@ -161,6 +151,7 @@ export PAPERLESS_TOKEN="your_api_token_here"
 paperless-mcp
 ```
 
+
 #### HTTP Transport
 For HTTP-based integrations with ChatGPT and other HTTP clients using Streamable HTTP protocol:
 
@@ -176,10 +167,21 @@ npm install
 cp config.example.sh config.sh
 # Edit config.sh with your Paperless-ngx URL and API token
 
+# Set transport mode to HTTP (optional, default is stdio)
+export MCP_TRANSPORT="http"
+export MCP_PORT="3000"
+
 # Load config and start server
 source config.sh
 ./start.sh
 ```
+
+The start script will:
+1. Start the MCP server on the configured port (default 3000)
+2. Print local HTTP endpoints for health and API access
+
+**No tunneling or public exposure is included by default.**
+For remote access, use your own reverse proxy, VPN, or secure tunnel solution.
 
 HTTP endpoints:
 - `GET /health` - Health check

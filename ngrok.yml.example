@@ -1,0 +1,48 @@
+# Ngrok Configuration for Paperless MCP Server
+# Copy this file to ~/.ngrok2/ngrok.yml and customize it
+# Then run: ngrok config check
+
+version: "2"
+
+# Your ngrok auth token (get from https://dashboard.ngrok.com/get-started/your-authtoken)
+authtoken: YOUR_NGROK_AUTH_TOKEN_HERE
+
+# Region selection (us, eu, ap, au, sa, jp, in)
+region: eu
+
+# Console UI options
+console_ui: true
+console_ui_color: transparent
+
+# Log configuration
+log_level: info
+log_format: json
+log: ngrok.log
+
+# Tunnel definitions
+tunnels:
+  paperless-mcp:
+    proto: http
+    addr: 3000
+    inspect: true
+    # Optional: Use a custom domain (requires paid plan)
+    # domain: your-custom-domain.ngrok.app
+    
+    # Optional: Basic auth (uncomment to enable)
+    # auth: "username:password"
+    
+    # Optional: IP restrictions (uncomment to enable)
+    # ip_restriction:
+    #   allow_cidrs:
+    #     - 0.0.0.0/0
+    
+    # Optional: Request headers
+    # request_headers:
+    #   add:
+    #     - "X-Custom-Header: value"
+
+# Web interface (inspector) configuration
+web_addr: localhost:4040
+
+# Update channel
+update_channel: stable

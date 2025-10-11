@@ -277,11 +277,24 @@ if [[ "$MCP_TRANSPORT" == "http" ]]; then
     echo -e "${YELLOW}Press Ctrl+C to stop the MCP server${NC}"
     echo ""
     npm run start
-else
+elif [[ "$MCP_TRANSPORT" == "stdio" ]]; then
     echo -e "${BLUE}📡 Starting STDIO server for MCP clients...${NC}"
     echo -e "${CYAN}   Ready for MCP client connections (e.g., Claude Desktop)${NC}"
     echo ""
     echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
     echo ""
     npm run start
+elif [[ "$MCP_TRANSPORT" == "both" ]]; then
+    echo -e "${BLUE}🌐 Starting HTTP server on port $MCP_PORT...${NC}"
+    echo -e "${CYAN}   Health check: ${GREEN}http://localhost:$MCP_PORT/health${NC}"
+    echo -e "${CYAN}   MCP endpoint: ${GREEN}http://localhost:$MCP_PORT/api${NC}"
+    echo -e "${BLUE}📡 Also starting STDIO server for MCP clients...${NC}"
+    echo -e "${CYAN}   Ready for MCP client connections (e.g., Claude Desktop)${NC}"
+    echo ""
+    echo -e "${YELLOW}Press Ctrl+C to stop the servers${NC}"
+    echo ""
+    npm run start
+else
+    echo -e "${RED}❌ Unknown MCP_TRANSPORT: $MCP_TRANSPORT${NC}"
+    exit 1
 fi

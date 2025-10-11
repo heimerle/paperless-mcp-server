@@ -11,6 +11,7 @@ export PAPERLESS_TOKEN="your-api-token-here"
 export MCP_TRANSPORT="stdio"  # or "http"
 export MCP_PORT="3000"        # Only used for HTTP transport
 
+
 # Uncomment and customize for your setup:
 # export PAPERLESS_URL="https://your-paperless.example.com"
 # export PAPERLESS_TOKEN="your-actual-token"

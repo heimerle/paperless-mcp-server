@@ -17,6 +17,10 @@ dist/
 # Personal configuration (contains tokens)
 config.sh
 
+# Cloudflare Tunnel logs
+/tmp/cloudflared-*.log
+nohup.out
+
 # IDE files
 .vscode/
 .idea/

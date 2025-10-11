@@ -18,13 +18,20 @@ const PAPERLESS_TOKEN = process.env.PAPERLESS_TOKEN;
 const MCP_TRANSPORT = process.env.MCP_TRANSPORT || "stdio"; // "stdio" or "http"
 const MCP_PORT = parseInt(process.env.MCP_PORT || "3000");
 
-if (!PAPERLESS_TOKEN) {
-  console.error("Error: PAPERLESS_TOKEN environment variable is required");
-  process.exit(1);
-}
+// Initialize Paperless client (lazy loading - created when first needed)
+let paperlessClient: PaperlessClient | null = null;
 
-// Initialize Paperless client
-const paperlessClient = new PaperlessClient(PAPERLESS_URL, PAPERLESS_TOKEN);
+function getPaperlessClient(): PaperlessClient {
+  if (!PAPERLESS_TOKEN) {
+    throw new Error("PAPERLESS_TOKEN environment variable is required");
+  }
+  
+  if (!paperlessClient) {
+    paperlessClient = new PaperlessClient(PAPERLESS_URL, PAPERLESS_TOKEN);
+  }
+  
+  return paperlessClient;
+}
 
 // Create MCP server
 const server = new Server(
@@ -392,7 +399,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case "search_documents": {
         const parsed = SearchDocumentsSchema.parse(args);
-        const results = await paperlessClient.searchDocuments(parsed);
+        const results = await getPaperlessClient().searchDocuments(parsed);
         return {
           content: [
             {
@@ -405,7 +412,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_document": {
         const parsed = GetDocumentSchema.parse(args);
-        const document = await paperlessClient.getDocument(parsed.document_id);
+        const document = await getPaperlessClient().getDocument(parsed.document_id);
         return {
           content: [
             {
@@ -419,7 +426,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_document": {
         const parsed = UpdateDocumentSchema.parse(args);
         const { document_id, ...updateData } = parsed;
-        const updated = await paperlessClient.updateDocument(document_id, updateData);
+        const updated = await getPaperlessClient().updateDocument(document_id, updateData);
         return {
           content: [
             {
@@ -431,7 +438,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_tags": {
-        const tags = await paperlessClient.listTags();
+        const tags = await getPaperlessClient().listTags();
         return {
           content: [
             {
@@ -443,7 +450,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_correspondents": {
-        const correspondents = await paperlessClient.listCorrespondents();
+        const correspondents = await getPaperlessClient().listCorrespondents();
         return {
           content: [
             {
@@ -455,7 +462,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "list_document_types": {
-        const documentTypes = await paperlessClient.listDocumentTypes();
+        const documentTypes = await getPaperlessClient().listDocumentTypes();
         return {
           content: [
             {
@@ -468,7 +475,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_tag": {
         const parsed = CreateTagSchema.parse(args);
-        const tag = await paperlessClient.createTag(parsed);
+        const tag = await getPaperlessClient().createTag(parsed);
         return {
           content: [
             {
@@ -481,7 +488,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_correspondent": {
         const parsed = CreateCorrespondentSchema.parse(args);
-        const correspondent = await paperlessClient.createCorrespondent(parsed);
+        const correspondent = await getPaperlessClient().createCorrespondent(parsed);
         return {
           content: [
             {
@@ -494,7 +501,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_document_type": {
         const parsed = CreateDocumentTypeSchema.parse(args);
-        const documentType = await paperlessClient.createDocumentType(parsed);
+        const documentType = await getPaperlessClient().createDocumentType(parsed);
         return {
           content: [
             {
@@ -507,7 +514,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "download_document": {
         const parsed = GetDocumentSchema.parse(args);
-        const downloadUrl = await paperlessClient.getDownloadUrl(parsed.document_id);
+        const downloadUrl = await getPaperlessClient().getDownloadUrl(parsed.document_id);
         return {
           content: [
             {
@@ -520,7 +527,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "bulk_update_documents": {
         const parsed = BulkUpdateDocumentsSchema.parse(args);
-        const result = await paperlessClient.bulkUpdateDocuments({ documents: parsed.documents });
+        const result = await getPaperlessClient().bulkUpdateDocuments({ documents: parsed.documents });
         
         let responseText = `Bulk update completed:\n`;
         responseText += `✅ Successfully updated: ${result.updated_count} documents\n`;
@@ -545,7 +552,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Document Operations
       case "delete_document": {
         const parsed = GetDocumentSchema.parse(args);
-        await paperlessClient.deleteDocument(parsed.document_id);
+        await getPaperlessClient().deleteDocument(parsed.document_id);
         return {
           content: [{ type: "text", text: `Document ${parsed.document_id} deleted successfully` }],
         };
@@ -553,7 +560,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_document_suggestions": {
         const parsed = GetDocumentSchema.parse(args);
-        const suggestions = await paperlessClient.getDocumentSuggestions(parsed.document_id);
+        const suggestions = await getPaperlessClient().getDocumentSuggestions(parsed.document_id);
         return {
           content: [{ type: "text", text: JSON.stringify(suggestions, null, 2) }],
         };
@@ -561,7 +568,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_document_metadata": {
         const parsed = GetDocumentSchema.parse(args);
-        const metadata = await paperlessClient.getDocumentMetadata(parsed.document_id);
+        const metadata = await getPaperlessClient().getDocumentMetadata(parsed.document_id);
         return {
           content: [{ type: "text", text: JSON.stringify(metadata, null, 2) }],
         };
@@ -569,7 +576,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Storage Paths
       case "list_storage_paths": {
-        const storagePaths = await paperlessClient.listStoragePaths();
+        const storagePaths = await getPaperlessClient().listStoragePaths();
         return {
           content: [{ type: "text", text: JSON.stringify(storagePaths, null, 2) }],
         };
@@ -577,7 +584,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_storage_path": {
         const parsed = IdSchema.parse(args);
-        const storagePath = await paperlessClient.getStoragePath(parsed.id);
+        const storagePath = await getPaperlessClient().getStoragePath(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(storagePath, null, 2) }],
         };
@@ -585,7 +592,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_storage_path": {
         const parsed = CreateStoragePathSchema.parse(args);
-        const storagePath = await paperlessClient.createStoragePath(parsed);
+        const storagePath = await getPaperlessClient().createStoragePath(parsed);
         return {
           content: [{ type: "text", text: `Storage path created: ${JSON.stringify(storagePath, null, 2)}` }],
         };
@@ -594,7 +601,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_storage_path": {
         const parsed = UpdateStoragePathSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const storagePath = await paperlessClient.updateStoragePath(id, updateData);
+        const storagePath = await getPaperlessClient().updateStoragePath(id, updateData);
         return {
           content: [{ type: "text", text: `Storage path updated: ${JSON.stringify(storagePath, null, 2)}` }],
         };
@@ -602,7 +609,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_storage_path": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteStoragePath(parsed.id);
+        await getPaperlessClient().deleteStoragePath(parsed.id);
         return {
           content: [{ type: "text", text: `Storage path ${parsed.id} deleted successfully` }],
         };
@@ -610,7 +617,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Custom Fields
       case "list_custom_fields": {
-        const customFields = await paperlessClient.listCustomFields();
+        const customFields = await getPaperlessClient().listCustomFields();
         return {
           content: [{ type: "text", text: JSON.stringify(customFields, null, 2) }],
         };
@@ -618,7 +625,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_custom_field": {
         const parsed = IdSchema.parse(args);
-        const customField = await paperlessClient.getCustomField(parsed.id);
+        const customField = await getPaperlessClient().getCustomField(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(customField, null, 2) }],
         };
@@ -626,7 +633,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_custom_field": {
         const parsed = CreateCustomFieldSchema.parse(args);
-        const customField = await paperlessClient.createCustomField(parsed);
+        const customField = await getPaperlessClient().createCustomField(parsed);
         return {
           content: [{ type: "text", text: `Custom field created: ${JSON.stringify(customField, null, 2)}` }],
         };
@@ -635,7 +642,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_custom_field": {
         const parsed = UpdateCustomFieldSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const customField = await paperlessClient.updateCustomField(id, updateData);
+        const customField = await getPaperlessClient().updateCustomField(id, updateData);
         return {
           content: [{ type: "text", text: `Custom field updated: ${JSON.stringify(customField, null, 2)}` }],
         };
@@ -643,7 +650,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_custom_field": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteCustomField(parsed.id);
+        await getPaperlessClient().deleteCustomField(parsed.id);
         return {
           content: [{ type: "text", text: `Custom field ${parsed.id} deleted successfully` }],
         };
@@ -651,7 +658,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Saved Views
       case "list_saved_views": {
-        const savedViews = await paperlessClient.listSavedViews();
+        const savedViews = await getPaperlessClient().listSavedViews();
         return {
           content: [{ type: "text", text: JSON.stringify(savedViews, null, 2) }],
         };
@@ -659,7 +666,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_saved_view": {
         const parsed = IdSchema.parse(args);
-        const savedView = await paperlessClient.getSavedView(parsed.id);
+        const savedView = await getPaperlessClient().getSavedView(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(savedView, null, 2) }],
         };
@@ -667,7 +674,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "create_saved_view": {
         const parsed = CreateSavedViewSchema.parse(args);
-        const savedView = await paperlessClient.createSavedView(parsed);
+        const savedView = await getPaperlessClient().createSavedView(parsed);
         return {
           content: [{ type: "text", text: `Saved view created: ${JSON.stringify(savedView, null, 2)}` }],
         };
@@ -676,7 +683,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_saved_view": {
         const parsed = UpdateSavedViewSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const savedView = await paperlessClient.updateSavedView(id, updateData);
+        const savedView = await getPaperlessClient().updateSavedView(id, updateData);
         return {
           content: [{ type: "text", text: `Saved view updated: ${JSON.stringify(savedView, null, 2)}` }],
         };
@@ -684,7 +691,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_saved_view": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteSavedView(parsed.id);
+        await getPaperlessClient().deleteSavedView(parsed.id);
         return {
           content: [{ type: "text", text: `Saved view ${parsed.id} deleted successfully` }],
         };
@@ -693,7 +700,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Tags CRUD
       case "get_tag": {
         const parsed = IdSchema.parse(args);
-        const tag = await paperlessClient.getTag(parsed.id);
+        const tag = await getPaperlessClient().getTag(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(tag, null, 2) }],
         };
@@ -702,7 +709,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_tag": {
         const parsed = UpdateTagSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const tag = await paperlessClient.updateTag(id, updateData);
+        const tag = await getPaperlessClient().updateTag(id, updateData);
         return {
           content: [{ type: "text", text: `Tag updated: ${JSON.stringify(tag, null, 2)}` }],
         };
@@ -710,7 +717,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_tag": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteTag(parsed.id);
+        await getPaperlessClient().deleteTag(parsed.id);
         return {
           content: [{ type: "text", text: `Tag ${parsed.id} deleted successfully` }],
         };
@@ -719,7 +726,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Correspondents CRUD
       case "get_correspondent": {
         const parsed = IdSchema.parse(args);
-        const correspondent = await paperlessClient.getCorrespondent(parsed.id);
+        const correspondent = await getPaperlessClient().getCorrespondent(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(correspondent, null, 2) }],
         };
@@ -728,7 +735,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_correspondent": {
         const parsed = UpdateCorrespondentSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const correspondent = await paperlessClient.updateCorrespondent(id, updateData);
+        const correspondent = await getPaperlessClient().updateCorrespondent(id, updateData);
         return {
           content: [{ type: "text", text: `Correspondent updated: ${JSON.stringify(correspondent, null, 2)}` }],
         };
@@ -736,7 +743,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_correspondent": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteCorrespondent(parsed.id);
+        await getPaperlessClient().deleteCorrespondent(parsed.id);
         return {
           content: [{ type: "text", text: `Correspondent ${parsed.id} deleted successfully` }],
         };
@@ -745,7 +752,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Document Types CRUD
       case "get_document_type": {
         const parsed = IdSchema.parse(args);
-        const documentType = await paperlessClient.getDocumentType(parsed.id);
+        const documentType = await getPaperlessClient().getDocumentType(parsed.id);
         return {
           content: [{ type: "text", text: JSON.stringify(documentType, null, 2) }],
         };
@@ -754,7 +761,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_document_type": {
         const parsed = UpdateDocumentTypeSchema.parse(args);
         const { id, ...updateData } = parsed;
-        const documentType = await paperlessClient.updateDocumentType(id, updateData);
+        const documentType = await getPaperlessClient().updateDocumentType(id, updateData);
         return {
           content: [{ type: "text", text: `Document type updated: ${JSON.stringify(documentType, null, 2)}` }],
         };
@@ -762,7 +769,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "delete_document_type": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.deleteDocumentType(parsed.id);
+        await getPaperlessClient().deleteDocumentType(parsed.id);
         return {
           content: [{ type: "text", text: `Document type ${parsed.id} deleted successfully` }],
         };
@@ -770,7 +777,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Tasks
       case "list_tasks": {
-        const tasks = await paperlessClient.listTasks();
+        const tasks = await getPaperlessClient().listTasks();
         return {
           content: [{ type: "text", text: JSON.stringify(tasks, null, 2) }],
         };
@@ -778,7 +785,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "acknowledge_task": {
         const parsed = IdSchema.parse(args);
-        await paperlessClient.acknowledgeTask(parsed.id);
+        await getPaperlessClient().acknowledgeTask(parsed.id);
         return {
           content: [{ type: "text", text: `Task ${parsed.id} acknowledged successfully` }],
         };
@@ -786,14 +793,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Statistics & System
       case "get_statistics": {
-        const statistics = await paperlessClient.getStatistics();
+        const statistics = await getPaperlessClient().getStatistics();
         return {
           content: [{ type: "text", text: JSON.stringify(statistics, null, 2) }],
         };
       }
 
       case "get_logs": {
-        const logs = await paperlessClient.getLogs();
+        const logs = await getPaperlessClient().getLogs();
         return {
           content: [{ type: "text", text: JSON.stringify(logs, null, 2) }],
         };
@@ -819,8 +826,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Resource handlers for document content
 server.setRequestHandler(ListResourcesRequestSchema, async () => {
   try {
-    // Get recent documents as resources
-    const documents = await paperlessClient.searchDocuments({ limit: 50 });
+    // Get recent documents as resources - with network error tolerance
+    const documents = await getPaperlessClient().searchDocuments({ limit: 50 });
     const resources = documents.results.map((doc: PaperlessDocument) => ({
       uri: `paperless://document/${doc.id}`,
       name: doc.title || `Document ${doc.id}`,
@@ -830,7 +837,13 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
 
     return { resources };
   } catch (error) {
-    console.error("Error listing resources:", error);
+    // Silently handle network errors during startup - Claude Desktop will retry later
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('EHOSTUNREACH') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND')) {
+      console.error("Network not ready for Paperless connection, returning empty resources (will retry later)");
+    } else {
+      console.error("Error listing resources:", error);
+    }
     return { resources: [] };
   }
 });
@@ -848,8 +861,8 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 
   try {
-    const document = await paperlessClient.getDocument(documentId);
-    const content = await paperlessClient.getDocumentContent(documentId);
+    const document = await getPaperlessClient().getDocument(documentId);
+    const content = await getPaperlessClient().getDocumentContent(documentId);
     
     return {
       contents: [
@@ -876,7 +889,9 @@ ${content}`,
 
 // Start the server
 async function main() {
-  if (MCP_TRANSPORT === "http") {
+  let started = false;
+  
+  if (MCP_TRANSPORT === "http" || MCP_TRANSPORT === "both") {
     // HTTP transport with SSE
     const http = await import("http");
     
@@ -1165,11 +1180,20 @@ async function main() {
       console.error(`Health check: http://localhost:${MCP_PORT}/health`);
       console.error(`MCP endpoints: http://localhost:${MCP_PORT}/message or /mcp`);
     });
-  } else {
-    // STDIO transport (default)
+    started = true;
+  }
+  
+  if (MCP_TRANSPORT === "stdio" || MCP_TRANSPORT === "both") {
+    // STDIO transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error("Paperless MCP server running on stdio");
+    started = true;
+  }
+  
+  if (!started) {
+    console.error(`Unknown MCP_TRANSPORT: ${MCP_TRANSPORT}`);
+    process.exit(1);
   }
 }
 
