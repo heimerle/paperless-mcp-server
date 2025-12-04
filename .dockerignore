@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Source files (we copy only dist)
+src/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Environment files (secrets)
+.env
+.env.local
+config.sh
+
+# Development files
+*.md
+!README.md
+tsconfig.json
+*.tsbuildinfo
+
+# Test files
+test/
+*.test.ts
+*.spec.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Scripts (not needed in container)
+*.sh

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  paperless-mcp:
+    build: .
+    image: paperless-mcp-server:latest
+    container_name: paperless-mcp
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MCP_TRANSPORT=http
+      - MCP_PORT=3000
+      - PAPERLESS_URL=${PAPERLESS_URL:-http://192.168.178.10:8010}
+      - PAPERLESS_TOKEN=${PAPERLESS_TOKEN}
+    ports:
+      - "3000:3000"
+    networks:
+      - proxy
+    labels:
+      # Traefik labels for reverse proxy (adjust based on your setup)
+      - "traefik.enable=true"
+      - "traefik.http.routers.paperless-mcp.rule=Host(`documents.winehome.de`)"
+      - "traefik.http.routers.paperless-mcp.entrypoints=websecure"
+      - "traefik.http.routers.paperless-mcp.tls=true"
+      - "traefik.http.routers.paperless-mcp.tls.certresolver=letsencrypt"
+      - "traefik.http.services.paperless-mcp.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  proxy:
+    external: true
