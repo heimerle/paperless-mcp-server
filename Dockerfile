@@ -2,20 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy all source files first
 COPY package*.json ./
 COPY tsconfig.json ./
-
-# Install all dependencies (including dev for build)
-RUN npm ci
-
-# Copy source files
 COPY src/ ./src/
+
+# Install dependencies (skip prepare script, we'll build manually)
+RUN npm ci --ignore-scripts
 
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies
+# Remove dev dependencies to reduce image size
 RUN npm prune --production
 
 # Set environment variables
