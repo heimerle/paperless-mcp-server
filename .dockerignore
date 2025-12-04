@@ -1,9 +1,6 @@
 # Dependencies
 node_modules/
 
-# Source files (we copy only dist)
-src/
-
 # Git
 .git/
 .gitignore
@@ -20,7 +17,6 @@ config.sh
 # Development files
 *.md
 !README.md
-tsconfig.json
 *.tsbuildinfo
 
 # Test files
@@ -37,4 +33,9 @@ Thumbs.db
 logs/
 
 # Scripts (not needed in container)
-*.sh
+deploy.sh
+start.sh
+claude-wrapper.sh
+
+# Build output (will be built in container)
+dist/
